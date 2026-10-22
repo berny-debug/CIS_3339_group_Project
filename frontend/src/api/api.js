@@ -2,6 +2,10 @@
 // import axios to make API calls
 import axios from "axios";
 
+import router from "../router";
+import { useLoggedInUserStore } from "../store/loggedInUser";
+import { pinia } from "../store/pinia";
+
 // Create HTTP client with the base URL, and specify that the data sent in the request body is JSON
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_ROOT_API,
@@ -9,6 +13,47 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+
+    let message;
+
+    if (!error.response) {
+      message = "Unable to reach the server";
+    } else {
+      const responseData = error.response.data;
+
+      if (typeof responseData === "string" && responseData.trim()) {
+        message = responseData;
+      } else if (responseData && typeof responseData.message === "string") {
+        message = responseData.message;
+      } else if (responseData && typeof responseData.error === "string") {
+        message = responseData.error;
+      } else {
+        message = "The request failed. Please try again.";
+      }
+    }
+
+    error.message = message;
+
+    if (status === 401) {
+      localStorage.removeItem("authToken");
+      delete apiClient.defaults.headers.common["Authorization"];
+
+      const sessionStore = useLoggedInUserStore(pinia);
+      sessionStore.resetSession();
+
+      if (router.currentRoute.value.path !== "/login") {
+        router.push("/login");
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 // Login related API calls
 // If user logs in successfully, this login sets a header to "apiClient" called "Authorization" with the value of "Bearer <token>" This security token is used to validate API calls
@@ -72,12 +117,8 @@ export async function getOrgName() {
 // Events related API calls
 // API call to get all events for org
 export const getEvents = async () => {
-  try {
-    const response = await apiClient.get("/events/");
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await apiClient.get("/events/");
+  return response.data;
 };
 
 // API call to GET single event by ID
@@ -92,22 +133,21 @@ export const getEventById = async (id) => {
 
 // API call to GET events based on search query
 export const searchEvents = async (query) => {
-  try {
-    let params = {};
-    if (query.searchBy === "name") {
-      params.searchBy = query.searchBy;
-      params.name = query.name || "";
-    } else if (query.searchBy === "date") {
-      params.searchBy = "date";
-      params.eventDate = query.eventDate || "";
-    }
-    const response = await apiClient.get(`/events/search`, {
-      params: params,
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
+  const params = {};
+
+  if (query.searchBy === "name") {
+    params.searchBy = query.searchBy;
+    params.name = query.name || "";
+  } else if (query.searchBy === "date") {
+    params.searchBy = "date";
+    params.eventDate = query.eventDate || "";
   }
+
+  const response = await apiClient.get("/events/search", {
+    params,
+  });
+
+  return response.data;
 };
 
 // API call to GET events for which a client is signed up
@@ -210,13 +250,10 @@ export const deregisterAttendee = async (eventId, clientId) => {
 
 // API call to DELETE event by ID
 export const deleteEvent = async (id) => {
-  try {
-    const response = await apiClient.delete(`/events/${id}`);
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.delete(`/events/${id}`);
+  return response.data;
 };
+
 
 // API call to get events for last two month for dashboard
 export const getAttendance = async () => {
@@ -231,157 +268,124 @@ export const getAttendance = async () => {
 // Clients related API calls
 // API call to GET all clients for org
 export const getClients = async () => {
-  try {
-    const response = await apiClient.get("clients");
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.get("clients");
+  return response.data;
 };
+
 
 // API call to GET single client by ID
 export const getClientById = async (id) => {
-  try {
-    const response = await apiClient.get(`/clients/id/${id}`);
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.get(`/clients/id/${id}`);
+  return response.data;
 };
 
+
 // API call to GET entries based on search query
+
 export const searchClients = async (query) => {
-  try {
-    let params = {};
-    if (query.searchBy === "name") {
-      params.searchBy = query.searchBy;
-      params.firstName = query.firstName || "";
-      params.lastName = query.lastName || "";
-    } else if (query.searchBy === "number") {
-      params.searchBy = query.searchBy;
-      params.phoneNumber = query.phoneNumber || "";
-    }
-    const response = await apiClient.get("/clients/search", {
-      params: params,
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
+  let params = {};
+
+  if (query.searchBy === "name") {
+    params.searchBy = query.searchBy;
+    params.firstName = query.firstName || "";
+    params.lastName = query.lastName || "";
+  } else if (query.searchBy === "number") {
+    params.searchBy = query.searchBy;
+    params.phoneNumber = query.phoneNumber || "";
   }
+
+  const response = await apiClient.get("/clients/search", {
+    params: params,
+  });
+
+  return response.data;
 };
+
 
 // API call to POST new client
 export const createClient = async (newClient) => {
-  try {
-    const response = await apiClient.post("/clients", newClient);
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.post("/clients", newClient);
+  return response.data;
 };
+
 
 // API call to PUT update client
 export const updateClient = async (id, updatedClient) => {
-  try {
-    const response = await apiClient.put(
-      `/clients/update/${id}`,
-      updatedClient
-    );
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.put(
+    `/clients/update/${id}`,
+    updatedClient
+  );
+  return response.data;
 };
+
 
 // API call to delete client
 export const deleteClientbyId = async (id) => {
-  try {
-    const response = await apiClient.delete(`/clients/${id}`);
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.delete(`/clients/${id}`);
+  return response.data;
 };
+
 
 // API call to get events for dashboard
 export const getClientsByZipCode = async () => {
-  try {
-    const response = await apiClient.get("/clients/byzip");
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.get("/clients/byzip");
+  return response.data;
 };
+
 
 // API calls related to services
 // API call to get all services for org
 export const getServices = async () => {
-  try {
-    const response = await apiClient.get("/services/");
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.get("/services/");
+  return response.data;
 };
+
 
 // API call to GET single service by ID
 export const getServiceById = async (id) => {
-  try {
-    const response = await apiClient.get(`/services/id/${id}`);
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.get(`/services/id/${id}`);
+  return response.data;
 };
+
 
 // API call to GET services based on search query
 export const searchServices = async (query) => {
-  try {
-    let params = {};
-    params.searchBy = query.searchBy;
-    if (query.searchBy === "name") {
-      params.name = query.name || "";
-    } else if (query.searchBy === "description") {
-      params.description = query.description;
-    }
-    const response = await apiClient.get("/services/search", {
-      params: params,
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
+  let params = {};
+  params.searchBy = query.searchBy;
+
+  if (query.searchBy === "name") {
+    params.name = query.name || "";
+  } else if (query.searchBy === "description") {
+    params.description = query.description;
   }
+
+  const response = await apiClient.get("/services/search", {
+    params: params,
+  });
+
+  return response.data;
 };
+
 
 // API call to POST new service
 export const createService = async (newService) => {
-  try {
-    const response = await apiClient.post("/services", newService);
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.post("/services", newService);
+  return response.data;
 };
+
 
 // API call to PUT update service
 export const updateService = async (id, updatedService) => {
-  try {
-    const response = await apiClient.put(
-      `/services/update/${id}`,
-      updatedService
-    );
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.put(
+    `/services/update/${id}`,
+    updatedService
+  );
+  return response.data;
 };
+
 
 // API call to DELETE service by ID
 export const deleteService = async (id) => {
-  try {
-    const response = await apiClient.delete(`/services/${id}`);
-    return response.data;
-  } catch (error) {
-    throw error.response.data;
-  }
+  const response = await apiClient.delete(`/services/${id}`);
+  return response.data;
 };
