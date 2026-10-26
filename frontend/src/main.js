@@ -6,12 +6,10 @@ import Toast from "vue-toastification";
 // Import the CSS or use your own!
 import "vue-toastification/dist/index.css";
 //state management library
-import { createPinia } from 'pinia'
+import { pinia } from './store/pinia'
 
 const app = createApp(App);
 
-//create a pinia root store
-const pinia = createPinia();
 //pinia should be able to use router - has to be setup as plugin
 pinia.use(({ store }) => {
   store.$router = markRaw(router)

@@ -18,6 +18,14 @@ export const useLoggedInUserStore = defineStore({
     }
   },
   actions: {
+    resetSession() {
+      this.$patch({
+        name: "",
+        role: "",
+        isLoggedIn: false
+      });
+    },
+
     async login(username, password) {
       try {
         const token = await loginUser(username, password);

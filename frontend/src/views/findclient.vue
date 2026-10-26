@@ -68,7 +68,29 @@
       </div>
       <!--Table showing list of Clients-->
       <div class="flex flex-col col-span-2">
-        <table class="min-w-full shadow-md rounded">
+        <p v-if="loading" class="py-4 text-center" role="status">
+          Loading clients...
+        </p>
+
+        <div v-else-if="error" class="py-4 text-center text-red-700" role="alert">
+          <p>{{ error }}</p>
+          <button
+            class="mt-2 rounded border border-red-700 px-3 py-1"
+            type="button"
+            @click="execute()"
+          >
+            Retry
+          </button>
+      </div>
+
+      <p
+        v-else-if="clients && clients.length === 0"
+        class="py-4 text-center"
+      >
+        No clients found.
+      </p>
+
+      <table v-if="!loading && !error && clients" class="min-w-full shadow-md rounded">
           <thead class="bg-gray-50 text-xl">
             <tr>
               <th class="p-4 text-left">Name</th>
@@ -95,81 +117,60 @@
   </main>
 </template>
 
-<script>
+
+<script setup>
+import { ref, onMounted } from 'vue'
 import { getClients, searchClients } from '../api/api'
-import { useToast } from 'vue-toastification'
+import { useApi } from '../composables/useApi'
 
-//Notifications
-const toast = useToast()
+const searchBy = ref('')
+const firstName = ref('')
+const lastName = ref('')
+const phoneNumber = ref('')
+const hoverId = ref(null)
 
-export default {
-  data() {
-    return {
-      //variable to store all clients and their information for the organization
-      clients: null,
-      // Parameters for search to occur
-      searchBy: '',
-      firstName: '',
-      lastName: '',
-      phoneNumber: '',
-      // variable stores the ID of the row that the mouse is currently hovering over (to highlight the row red)
-      hoverId: null,
-    }
-  },
-  mounted() {
-    // when component is mounted, load the data -
-    this.loadData()
-  },
-  methods: {
-    // method called when component is mounted
-    async loadData() {
-      // Resets all the variables
-      this.searchBy = ''
-      this.firstName = ''
-      this.lastName = ''
-      this.phoneNumber = ''
+const {
+  data: clients,
+  loading,
+  error,
+  execute,
+} = useApi(() => getClients())
 
-      // get list of clients
-      try {
-        const response = await getClients();
-        this.clients = response;
-      } catch (error) {
-        toast.error(error)
-      }
-    },
-    // method called when user searches for clients
-    async handleSubmitForm() {
-      // if user searched by client name
-      if (this.searchBy === 'Client Name') {
-        if (this.firstName || this.lastName) {
-          try {
-            const query = {
-              searchBy: 'name',
-              firstName: this.firstName,
-              lastName: this.lastName,
-            }
-            const response = await searchClients(query)
-            this.clients = response;
-          } catch (error) {
-            toast.error(error)
-          }
-        }
-        // if user searches by client phone number
-      } else if (this.searchBy === 'Client Number') {
-        if (this.phoneNumber) {
-          try {
-            const query = {
-              searchBy: 'number',
-              phoneNumber: this.phoneNumber
-            }
-            const response = await searchClients(query)
-            this.clients = response;
-          } catch (error) {
-            toast.error(error)
-          }
-        }
-      }
-    },
-  },
+async function loadData() {
+  searchBy.value = ''
+  firstName.value = ''
+  lastName.value = ''
+  phoneNumber.value = ''
+
+  await execute()
 }
+
+async function handleSubmitForm() {
+  let query = null
+
+  if (searchBy.value === 'Client Name') {
+    if (!firstName.value && !lastName.value) return
+
+    query = {
+      searchBy: 'name',
+      firstName: firstName.value,
+      lastName: lastName.value,
+    }
+  } else if (searchBy.value === 'Client Number') {
+    if (!phoneNumber.value) return
+
+    query = {
+      searchBy: 'number',
+      phoneNumber: phoneNumber.value,
+    }
+  }
+
+  if (!query) return
+
+  await execute(() => searchClients(query))
+}
+
+onMounted(() => {
+  execute()
+})
 </script>
