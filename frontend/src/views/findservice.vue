@@ -84,6 +84,8 @@
 </template>
 
 <script setup>
+// Migrated from Options API: data() -> ref(), methods -> functions, mounted() -> onMounted(),
+// this.x -> x.value
 import { ref, onMounted } from 'vue'
 import { getServices, searchServices } from '../api/api'
 import { useToast } from 'vue-toastification'

@@ -90,6 +90,7 @@
 </template>
 
 <script setup>
+// Migrated from Options API: setup() -> <script setup>, data() -> ref(), created() -> onMounted()
 import { ref, onMounted } from 'vue'
 import { useLoggedInUserStore } from './store/loggedInUser'
 import { getOrgName } from './api/api'

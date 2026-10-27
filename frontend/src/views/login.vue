@@ -32,6 +32,7 @@
 </template>
 
 <script setup>
+// Migrated from Options API: data() -> ref(), setup() return -> top-level bindings
 import { ref } from 'vue'
 import { useLoggedInUserStore } from '../store/loggedInUser'
 

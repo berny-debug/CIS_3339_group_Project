@@ -125,6 +125,8 @@
 </template>
 
 <script setup>
+// Migrated from Options API: data() -> ref(), methods -> functions, mounted() -> onMounted(),
+// components: {} -> imported components are available in the template automatically
 import { ref, onMounted } from 'vue'
 import AttendanceChart from '../components/barChart.vue'
 import ZipChart from '../components/donutZipChart.vue'

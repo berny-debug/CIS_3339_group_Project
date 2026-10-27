@@ -5,6 +5,8 @@
 </template>
 
 <script setup>
+// Migrated from Options API: props -> defineProps(), this.$refs -> template ref(),
+// mounted() -> onMounted(); the chart is now destroyed in onBeforeUnmount()
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { Chart, registerables } from 'chart.js'
 

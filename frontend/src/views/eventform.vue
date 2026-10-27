@@ -155,6 +155,8 @@
 </template>
 
 <script setup>
+// Migrated from Options API: data() -> reactive()/ref(), validations() -> rules object passed to
+// useVuelidate(rules, state), mounted() -> onMounted(), this.$router -> useRouter()
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 // import vuelidate validations

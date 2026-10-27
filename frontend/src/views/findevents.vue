@@ -84,6 +84,8 @@
 </template>
 
 <script setup>
+// Migrated from Options API: data() -> ref(), methods -> functions, mounted() -> onMounted(),
+// this.x -> x.value (removed unused isLoading assignment)
 import { ref, onMounted } from 'vue'
 import { getEvents, searchEvents } from '../api/api'
 import { useToast } from 'vue-toastification'

@@ -232,6 +232,9 @@
 </template>
 
 <script setup>
+// Migrated from Options API: data() -> ref(), validations() -> rules object passed to
+// useVuelidate(rules, state), mounted() -> onMounted(), this.$route/$router -> useRoute()/useRouter(),
+// components: { VueMultiselect } -> imported component is available in the template automatically
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import useVuelidate from '@vuelidate/core'
