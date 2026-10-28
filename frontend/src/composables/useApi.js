@@ -1,6 +1,7 @@
 
 import { ref } from 'vue'
 
+// composable function to handle API calls with loading and error states to avoid repeating the same logic in multiple components
 export function useApi(apiCall) {
   const data = ref(null)
   const loading = ref(false)
