@@ -364,35 +364,94 @@ export default {
       }
     },
 
+
     // method called to add client to an event
     async addClientToEvent() {
       try {
-        const client = this.client._id;
-        const events = this.eventsSelected.map((event) => event._id);
-        const promises = [];
+        if (!this.eventsSelected.length) {
+          toast.info("Select at least one event to register.");
+          return;
+        }
+        const clientId = this.client._id;
+        const selectedEvents = [...this.eventsSelected];
 
-        for (const eventId of events) {
-          promises.push(registerAttendee(eventId, client));
+        const results = await Promise.allSettled(
+          selectedEvents.map((event) =>
+            registerAttendee(event._id, clientId)
+          )
+        );
+
+        let successCount = 0;
+        let alreadyRegisteredCount = 0;
+        let failedCount = 0;
+
+        results.forEach((result) => {
+          if (result.status === "rejected") {
+            const status = result.reason?.response?.status;
+            const responseMessage = result.reason?.response?.data;
+
+            if (
+              status === 400 &&
+              typeof responseMessage === "string" &&
+              responseMessage.toLowerCase().includes("already added")
+            ) {
+              alreadyRegisteredCount++;
+            } else {
+              failedCount++;
+            }
+
+            return;
+          }
+
+
+          const response = result.value;
+          const message =
+            typeof response === "string"
+              ? response
+              : response?.message;
+
+          if (message === "Already registered") {
+            alreadyRegisteredCount++;
+          } else {
+            successCount++;
+          }
+        });
+
+        if (results.some((result) => result.status === "fulfilled")) {
+          this.clientEvents = await getClientEvents(
+            this.$route.params.id
+          );
+          this.eventsFiltered = await getNonClientEvents(
+            this.$route.params.id
+          );
         }
 
-        Promise.all(promises)
-          .then(async () => {
-            try {
-              this.clientEvents = await getClientEvents(this.$route.params.id);
-              this.eventsFiltered = await getNonClientEvents(this.$route.params.id);
-              this.eventsSelected = [];
-            } catch (error) {
-              toast.error(error);
-            }
-          })
-          .catch((error) => {
-            toast.error(error);
-          });
-      } catch (error) {
-        toast.error(error);
-      }
+        this.eventsSelected = [];
 
+        if (successCount > 0) {
+          toast.success(
+            `${successCount} event registration(s) successful.`
+          );
+        }
+
+        if (alreadyRegisteredCount > 0) {
+          toast.info(
+            `${alreadyRegisteredCount} event registration(s) already existed.`
+          );
+        }
+
+        if (failedCount > 0) {
+          toast.error(
+            `${failedCount} event registration(s) failed.`
+          );
+        }
+      } catch (error) {
+        toast.error(
+          error?.message || "Unable to update event registrations."
+        );
+      }
     },
+
 
     // update client information
     async submitUpdateClient() {
