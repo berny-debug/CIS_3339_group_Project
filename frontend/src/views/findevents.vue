@@ -74,39 +74,17 @@
     </button>
   </div>
 
-  <!-- Empty state -->
-  <p v-else-if="events && events.length === 0" class="mt-4">
-    No events found.
-  </p>
-
   <!-- Events table -->
-  <table
-    v-else-if="events"
-    class="mt-4 min-w-full shadow-md rounded"
-  >
-    <thead class="bg-gray-50 text-xl">
-      <tr>
-        <th class="p-4 text-left">Event Name</th>
-        <th class="p-4 text-left">Event Date</th>
-        <th class="p-4 text-left">Event Address</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-gray-300">
-      <tr
-        v-for="event in events"
-        :key="event._id"
-        @click="$router.push({ name: 'eventdetails', params: { id: event._id } })"
-        class="cursor-pointer"
-        :class="{ hoverRow: hoverId === event._id }"
-        @mouseenter="hoverId = event._id"
-        @mouseleave="hoverId = null"
-      >
-        <td class="p-2 text-left">{{ event.name }}</td>
-        <td class="p-2 text-left">{{ formatDate(event.date) }}</td>
-        <td class="p-2 text-left">{{ event.address?.line1 || 'No address available' }}</td>
-      </tr>
-    </tbody>
-  </table>
+  <DataTable
+    v-if="!loading && !error && events"
+    class="mt-4"
+    :columns="eventColumns"
+    :rows="eventRows"
+    @row-click="$router.push({
+      name: 'eventdetails',
+      params: { id: $event._id }
+    })"
+  />
 </div>
 
   </main>
@@ -114,14 +92,14 @@
 
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import DataTable from '../components/DataTable.vue'
 import { getEvents, searchEvents } from '../api/api'
 import { useApi } from '../composables/useApi'
 
 const searchBy = ref('Event Name')
 const name = ref('')
 const eventDate = ref('')
-const hoverId = ref(null)
 
 const {
   data: events,
@@ -130,6 +108,29 @@ const {
   execute,
 } = useApi(() => getEvents())
 
+// F3: Define the columns for the shared DataTable.
+// The computed rows below prepare useApi results for display.
+// Existing F2 API calls, search, loading, and error handling are retained.
+const eventColumns = [
+  { label: 'Event Name', key: 'name' },
+  {
+    label: 'Event Date',
+    key: 'date',
+    render: value => value === null ? '' : formatDate(value)
+  },
+  { label: 'Event Address', key: 'address' }
+]
+
+// Use timestamps to sort dates chronologically.
+// The date column's render function formats them for display.
+const eventRows = computed(() =>
+  (events.value ?? []).map(event => ({
+    _id: event._id,
+    name: event.name ?? '',
+    date: event.date ? new Date(event.date).getTime() : null,
+    address: event.address?.line1 || 'No address available'
+  }))
+)
 async function loadData() {
   searchBy.value = 'Event Name'
   name.value = ''

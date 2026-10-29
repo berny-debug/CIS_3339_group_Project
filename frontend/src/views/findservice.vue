@@ -76,37 +76,17 @@
     </button>
   </div>
 
-  <!-- Empty state -->
-  <p v-else-if="services && services.length === 0" class="mt-4">
-    No services found.
-  </p>
-
   <!-- Services table -->
-  <table
-    v-else-if="services"
-    class="mt-4 min-w-full shadow-md rounded"
-  >
-    <thead class="bg-gray-50 text-xl">
-      <tr>
-        <th class="p-4 text-left" style="width: 25%">Service Name</th>
-        <th class="p-4 text-left" style="width: 75%">Service Description</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-gray-300">
-      <tr
-        v-for="service in services"
-        :key="service._id"
-        @click="$router.push({ name: 'servicedetails', params: { id: service._id } })"
-        class="cursor-pointer"
-        :class="{ hoverRow: hoverId === service._id }"
-        @mouseenter="hoverId = service._id"
-        @mouseleave="hoverId = null"
-      >
-        <td class="p-4 text-left">{{ service.name }}</td>
-        <td class="p-4 text-left text-sm">{{ service.description }}</td>
-      </tr>
-    </tbody>
-  </table>
+  <DataTable
+    v-if="!loading && !error && services"
+    class="mt-4"
+    :columns="serviceColumns"
+    :rows="serviceRows"
+    @row-click="$router.push({
+      name: 'servicedetails',
+      params: { id: $event._id }
+    })"
+  />
 </div>
 
   </main>
@@ -114,14 +94,14 @@
 
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import DataTable from '../components/DataTable.vue'
 import { getServices, searchServices } from '../api/api'
 import { useApi } from '../composables/useApi'
 
 const searchBy = ref('')
 const name = ref('')
 const description = ref('')
-const hoverId = ref(null)
 
 const {
   data: services,
@@ -129,6 +109,22 @@ const {
   error,
   execute,
 } = useApi(() => getServices())
+
+// F3: Define the columns for the shared DataTable.
+// The computed rows below prepare useApi results for display.
+// Existing F2 API calls, search, loading, and error handling are retained.
+const serviceColumns = [
+  { label: 'Service Name', key: 'name' },
+  { label: 'Service Description', key: 'description' }
+]
+
+const serviceRows = computed(() =>
+  (services.value ?? []).map(service => ({
+    _id: service._id,
+    name: service.name ?? '',
+    description: service.description ?? ''
+  }))
+)
 
 async function loadData() {
   searchBy.value = ''
