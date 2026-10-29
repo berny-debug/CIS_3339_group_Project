@@ -107,6 +107,10 @@ const {
   error,
   execute,
 } = useApi(() => getEvents())
+
+// F3: Define the columns for the shared DataTable.
+// The computed rows below prepare useApi results for display.
+// Existing F2 API calls, search, loading, and error handling are retained.
 const eventColumns = [
   { label: 'Event Name', key: 'name' },
   {
@@ -117,6 +121,8 @@ const eventColumns = [
   { label: 'Event Address', key: 'address' }
 ]
 
+// Use timestamps to sort dates chronologically.
+// The date column's render function formats them for display.
 const eventRows = computed(() =>
   (events.value ?? []).map(event => ({
     _id: event._id,

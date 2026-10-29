@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 
+// F3: Reusable table using the composition API.
+// Props let the client, event, and service pages share this component.
 const props = defineProps({
   columns: {
     type: Array,
@@ -13,12 +15,13 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['row-click'])
-
+// Track the selected sort and current page using reactive refs.
 const sortKey = ref(null)
 const sortDirection = ref(null)
 const currentPage = ref(1)
 const pageSize = 10
-
+// Cycle through ascending, descending, and original order.
+// Reset to page 1 when the sort changes.
 function sortBy(key) {
   if (sortKey.value !== key) {
     sortKey.value = key
@@ -32,7 +35,8 @@ function sortBy(key) {
 
   currentPage.value = 1
 }
-
+// Sort a copy of the rows without changing the parent's data.
+// Sorting happens before pagination so it includes all matching records.
 const sortedRows = computed(() => {
   const result = [...props.rows]
 
@@ -61,7 +65,7 @@ const sortedRows = computed(() => {
 const totalPages = computed(() =>
   Math.max(1, Math.ceil(props.rows.length / pageSize))
 )
-
+// Calculate which 10 rows to display on the current page.
 const visibleRows = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   return sortedRows.value.slice(start, start + pageSize)

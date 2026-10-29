@@ -115,6 +115,10 @@ const {
   error,
   execute,
 } = useApi(() => getClients())
+
+// F3: Define the columns for the shared DataTable.
+// The computed rows below prepare useAPI results for display.
+// Existing F2 API Calls, search, loading, and error handling are retained.
 const clientColumns = [
   { label: 'Name', key: 'name' },
   { label: 'Phone number', key: 'phone' },

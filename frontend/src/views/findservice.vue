@@ -109,6 +109,10 @@ const {
   error,
   execute,
 } = useApi(() => getServices())
+
+// F3: Define the columns for the shared DataTable.
+// The computed rows below prepare useApi results for display.
+// Existing F2 API calls, search, loading, and error handling are retained.
 const serviceColumns = [
   { label: 'Service Name', key: 'name' },
   { label: 'Service Description', key: 'description' }
