@@ -341,16 +341,23 @@ export default {
       // remove client ID from the "attendees" array for that event
       try {
         const response = await deregisterAttendee(eventId, clientId);
-        toast.success(response)
-      } catch (error) {
-        toast.error(error);
-      }
-      // update events for which client is registered, and events for which client is not registered
-      try {
+        const message =
+          typeof response === "string"
+            ? response
+            : response?.message || "Event deregistration processed.";
+
+        if (message === "Not registered") {
+          toast.info(message);
+        } else {
+          toast.success(message);
+        }
+
         this.clientEvents = await getClientEvents(this.$route.params.id);
         this.eventsFiltered = await getNonClientEvents(this.$route.params.id);
       } catch (error) {
-        toast.error(error);
+        toast.error(
+          error?.message || "Unable to deregister from the event."
+        );
       }
     },
 
