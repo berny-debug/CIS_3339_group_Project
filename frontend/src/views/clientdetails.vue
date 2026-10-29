@@ -196,15 +196,18 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-300">
-            <tr @click="$router.push({ name: 'eventdetails', params: { id: event._id } })" 
-            v-for="event in clientEvents" :key="event._id" class="cursor-pointer" 
-              :class="{ 'hoverRow': hoverId === event._id }" @mouseenter="hoverId = event._id" @mouseleave="hoverId = null">
+            <tr @click="$router.push({ name: 'eventdetails', params: { id: event._id } })" v-for="event in clientEvents"
+              :key="event._id" class="cursor-pointer" :class="{ 'hoverRow': hoverId === event._id }"
+              @mouseenter="hoverId = event._id" @mouseleave="hoverId = null">
               <td class="p-2 text-left">{{ event.name }}</td>
               <td class="p-2 text-left">{{ formatDate(event.date) }}</td>
               <td class="p-2 text-right">
                 <span class="remove-btn-wrapper">
                   <span class="remove-btn text-gray-400 cursor-pointer"
-                    @click.stop="removeClientFromEvent(client._id, event._id)" v-if="hoverId === event._id">X</span>
+                    @click.stop="removeClientFromEvent(client._id, event._id)"
+                    v-if="hoverId === event._id && user.role === 'editor'">
+                    X
+                  </span>
                 </span>
               </td>
             </tr>
