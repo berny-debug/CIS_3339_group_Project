@@ -83,35 +83,15 @@
           </button>
       </div>
 
-      <p
-        v-else-if="clients && clients.length === 0"
-        class="py-4 text-center"
-      >
-        No clients found.
-      </p>
-
-      <table v-if="!loading && !error && clients" class="min-w-full shadow-md rounded">
-          <thead class="bg-gray-50 text-xl">
-            <tr>
-              <th class="p-4 text-left">Name</th>
-              <th class="p-4 text-left">Phone number</th>
-              <th class="p-4 text-left">City</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-300">
-            <tr @click="$router.push({ name: 'clientdetails', params: { id: client._id } })" v-for="client in clients"
-              :key="client._id" class="cursor-pointer" :class="{ 'hoverRow': hoverId === client._id }"
-              @mouseenter="hoverId = client._id" @mouseleave="hoverId = null">
-              <td class="p-2 text-left">
-                {{ client.firstName + ' ' + client.lastName }}
-              </td>
-              <td class="p-2 text-left">
-                {{ client.phoneNumber.primary }}
-              </td>
-              <td class="p-2 text-left">{{ client.address.city }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <DataTable
+          v-if="!loading && !error && clients"
+          :columns="clientColumns"
+          :rows="clientRows"
+          @row-click="$router.push({
+            name: 'clientdetails',
+            params: { id: $event._id }
+          })"
+        />
       </div>
     </div>
   </main>
@@ -119,7 +99,8 @@
 
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import DataTable from '../components/DataTable.vue'
 import { getClients, searchClients } from '../api/api'
 import { useApi } from '../composables/useApi'
 
@@ -127,7 +108,6 @@ const searchBy = ref('')
 const firstName = ref('')
 const lastName = ref('')
 const phoneNumber = ref('')
-const hoverId = ref(null)
 
 const {
   data: clients,
@@ -136,6 +116,23 @@ const {
   execute,
 } = useApi(() => getClients())
 
+// F3: Define the columns for the shared DataTable.
+// The computed rows below prepare useAPI results for display.
+// Existing F2 API Calls, search, loading, and error handling are retained.
+const clientColumns = [
+  { label: 'Name', key: 'name' },
+  { label: 'Phone number', key: 'phone' },
+  { label: 'City', key: 'city' }
+]
+
+const clientRows = computed(() =>
+  (clients.value ?? []).map(client => ({
+    _id: client._id,
+    name: `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim(),
+    phone: client.phoneNumber?.primary ?? '',
+    city: client.address?.city ?? ''
+  }))
+)
 async function loadData() {
   searchBy.value = ''
   firstName.value = ''
