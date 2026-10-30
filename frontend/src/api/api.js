@@ -96,12 +96,12 @@ export async function loginUser(username, password) {
     setAuthHeader(token);
     return token;
   } catch (error) {
-    if (error.response.status === 400) {
-      let errorString = getErrorMessageFromResponseBody(
-        error.response.data.message
-      );
-      throw new Error(errorString); // API errors get thrown here
-    } else throw error;
+    // the response interceptor has already put a readable text in error.message, whether the server
+    // sent { message } or { error }, or there was no response at all (server unreachable)
+    if (error.response?.status === 400) {
+      throw new Error(getErrorMessageFromResponseBody(error.message)); // API errors get thrown here
+    }
+    throw error;
   }
 }
 
