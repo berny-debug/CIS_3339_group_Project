@@ -89,42 +89,22 @@
   </main>
 </template>
 
-<script>
+<script setup>
+// Migrated from Options API: setup() -> <script setup>, data() -> ref(), created() -> onMounted()
+import { ref, onMounted } from 'vue'
 import { useLoggedInUserStore } from './store/loggedInUser'
 import { getOrgName } from './api/api'
-import { useToast } from 'vue-toastification'
 
-//Notifications
-const toast = useToast()
+const user = useLoggedInUserStore()
+const orgName = ref('Dataplatform')
 
-export default {
-  setup() {
-    const user = useLoggedInUserStore();
-    return { user };
-  },
-  data() {
-    return {
-      orgName: "Dataplatform",
-    };
-  },
-  async created() {
-    try {
-      this.orgName = await getOrgName();
-    } catch {
-      throw (error)
-    }
-  },
-  methods: {
-    logout() {
-      try {
-        this.$store.dispatch('clearSessionData');
-        this.$router.push('/')
-      } catch (error) {
-        toast.error('logout error', error)
-      }
-    },
+onMounted(async () => {
+  try {
+    orgName.value = await getOrgName()
+  } catch {
+    // keep the default organization name if it can't be loaded
   }
-}
+})
 </script>
 
 <style scoped>

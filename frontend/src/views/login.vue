@@ -31,22 +31,13 @@
     </div>
 </template>
 
-<script>
-  import { useLoggedInUserStore } from "../store/loggedInUser";
+<script setup>
+// Migrated from Options API: data() -> ref(), setup() return -> top-level bindings
+import { ref } from 'vue'
+import { useLoggedInUserStore } from '../store/loggedInUser'
 
-  export default {
-    data() {
-      return {
-        username: "",
-        password: "",
-      }
-    },
-    setup() {
-      const store = useLoggedInUserStore();
-      return {
-        store
-      }
-    }
-  }
+const username = ref('')
+const password = ref('')
+const store = useLoggedInUserStore()
 </script>
 
