@@ -23,6 +23,10 @@ apiClient.interceptors.response.use(
 
     if (!error.response) {
       message = "Unable to reach the server";
+    } else if (status === 403) {
+      // the user is logged in but not allowed to do this (for example, a viewer on an editor-only action),
+      // so keep the session and only explain what happened
+      message = "You don't have permission to do that";
     } else {
       const responseData = error.response.data;
 
@@ -92,12 +96,12 @@ export async function loginUser(username, password) {
     setAuthHeader(token);
     return token;
   } catch (error) {
-    if (error.response.status === 400) {
-      let errorString = getErrorMessageFromResponseBody(
-        error.response.data.message
-      );
-      throw new Error(errorString); // API errors get thrown here
-    } else throw error;
+    // the response interceptor has already put a readable text in error.message, whether the server
+    // sent { message } or { error }, or there was no response at all (server unreachable)
+    if (error.response?.status === 400) {
+      throw new Error(getErrorMessageFromResponseBody(error.message)); // API errors get thrown here
+    }
+    throw error;
   }
 }
 
