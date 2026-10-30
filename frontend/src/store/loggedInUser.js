@@ -64,13 +64,9 @@ export const useLoggedInUserStore = defineStore({
       }
     },
     logout() {
+      // clears the saved token and the Authorization header, then the Pinia session state
       logoutUser();
-      // Reset value after user log out
-      this.$patch({
-        name: "",
-        role: "",
-        isLoggedIn: false
-      });
+      this.resetSession();
       this.$router.push("/");
       toast.info("You have been logged out!")
     }
