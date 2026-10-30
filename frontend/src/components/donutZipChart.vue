@@ -4,45 +4,54 @@
   </div>
 </template>
 
-<script>
+<script setup>
+// Migrated from Options API: props -> defineProps(), this.$refs -> template ref(),
+// mounted() -> onMounted(); the chart is now destroyed in onBeforeUnmount()
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { Chart, registerables } from 'chart.js'
+
 Chart.register(...registerables)
-//define props (label and chartData)
-export default {
-  props: {
-    label: {
-      type: Array
+
+const props = defineProps({
+  label: {
+    type: Array
+  },
+  chartData: {
+    type: Array
+  }
+})
+
+const zipChart = ref(null)
+let chart = null
+
+// uses the data to load the chart's values
+onMounted(() => {
+  chart = new Chart(zipChart.value, {
+    type: 'doughnut',
+    data: {
+      labels: props.label,
+      datasets: [
+        {
+          borderWidth: 1,
+          data: props.chartData
+        }
+      ]
     },
-    chartData: {
-      type: Array
-    }
-  },
-  async mounted() { //uses the data to load the chart's values
-    await new Chart(this.$refs.zipChart, {
-      type: 'doughnut',
-      data: {
-        labels: this.label,
-        datasets: [
-          {
-            borderWidth: 1,
-            data: this.chartData // Update this line
-          }
-        ]
-      },
-      options: {
-        plugins: {
-          legend: {
-            display: false
-          },
-          title: {
-            display: true,
-            text: 'Clients by Zip Code'
-          }
+    options: {
+      plugins: {
+        legend: {
+          display: false
         },
-        responsive: true,
-        maintainAspectRatio: true
-      }
-    })
-  },
-}
+        title: {
+          display: true,
+          text: 'Clients by Zip Code'
+        }
+      },
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  })
+})
+
+onBeforeUnmount(() => chart?.destroy())
 </script>

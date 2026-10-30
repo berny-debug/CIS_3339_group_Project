@@ -107,6 +107,11 @@ export function logoutUser() {
   removeAuthHeader();
 }
 
+// Puts a previously saved token back on the Axios client, so a page refresh keeps API calls authorized
+export function restoreAuthHeader(token) {
+  setAuthHeader(token);
+}
+
 // Org related API calls
 // API call to get org name
 export async function getOrgName() {
