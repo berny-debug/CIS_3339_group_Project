@@ -5,6 +5,7 @@ import axios from "axios";
 import router from "../router";
 import { useLoggedInUserStore } from "../store/loggedInUser";
 import { pinia } from "../store/pinia";
+import { decodeToken, saveToken, clearStoredToken } from "../utils/token";
 
 // Create HTTP client with the base URL, and specify that the data sent in the request body is JSON
 const apiClient = axios.create({
@@ -44,14 +45,16 @@ apiClient.interceptors.response.use(
     error.message = message;
 
     if (status === 401) {
-      localStorage.removeItem("authToken");
-      delete apiClient.defaults.headers.common["Authorization"];
+      // token rejected by the server: clear the stored token, the auth header and the Pinia session
+      logoutUser();
 
       const sessionStore = useLoggedInUserStore(pinia);
       sessionStore.resetSession();
 
-      if (router.currentRoute.value.path !== "/login") {
-        router.push("/login");
+      const current = router.currentRoute.value;
+      if (current.path !== "/login") {
+        // remember where the user was so they can come back after logging in again
+        router.push({ path: "/login", query: { redirect: current.fullPath } });
       }
     }
 
@@ -70,44 +73,30 @@ function removeAuthHeader() {
   delete apiClient.defaults.headers.common["Authorization"];
 }
 
-// parsing out error messages from API calls see https://stackoverflow.com/questions/67089014/how-to-read-error-messages-from-javascript-error-object
-function getErrorMessageFromResponseBody(string) {
-  let errorString = string;
-
-  try {
-    let json = JSON.parse(string);
-    if (json.errors) {
-      errorString = json.errors[0].msg;
-    }
-  } catch (parseOrAccessError) {}
-
-  return errorString;
-}
-
 // API call to log the user in
+// Failed requests are already turned into a short message by the response interceptor above
+// (error.message), whether the server sent { message } or { error }, or was unreachable,
+// so there is nothing to translate here.
 export async function loginUser(username, password) {
-  try {
-    const response = await apiClient.post("/users/login", {
-      username,
-      password,
-    });
-    const token = response.data.token;
-    localStorage.setItem("authToken", token);
-    setAuthHeader(token);
-    return token;
-  } catch (error) {
-    // the response interceptor has already put a readable text in error.message, whether the server
-    // sent { message } or { error }, or there was no response at all (server unreachable)
-    if (error.response?.status === 400) {
-      throw new Error(getErrorMessageFromResponseBody(error.message)); // API errors get thrown here
-    }
-    throw error;
+  const response = await apiClient.post("/users/login", {
+    username,
+    password,
+  });
+  const token = response.data?.token;
+
+  // only keep a token that can actually be used to restore a session later
+  if (!decodeToken(token)) {
+    throw new Error("Login failed: the server sent an invalid session token.");
   }
+
+  saveToken(token);
+  setAuthHeader(token);
+  return token;
 }
 
 // API call to log the user out
 export function logoutUser() {
-  localStorage.removeItem("authToken");
+  clearStoredToken();
   removeAuthHeader();
 }
 

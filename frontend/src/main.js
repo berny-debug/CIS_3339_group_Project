@@ -2,7 +2,7 @@ import { createApp, markRaw } from "vue";
 import router from "./router";
 import App from "./App.vue";
 import "./index.css";
-import Toast from "vue-toastification";
+import Toast, { useToast } from "vue-toastification";
 // Import the CSS or use your own!
 import "vue-toastification/dist/index.css";
 //state management library
@@ -20,7 +20,8 @@ pinia.use(({ store }) => {
 app.use(pinia)
 
 // restore the login session from a saved token before the router runs its first navigation guard
-useLoggedInUserStore().restoreSession()
+const sessionStore = useLoggedInUserStore()
+const sessionStatus = sessionStore.restoreSession()
 
 app.use(router);
 
@@ -28,4 +29,13 @@ const options = {
   position: 'bottom-right'
 };
 app.use(Toast, options);
+
+// keep several open tabs in step when the saved token is added or removed in one of them
+window.addEventListener('storage', (event) => sessionStore.handleStorageEvent(event))
+
 app.mount("#app");
+
+// a token that was found but had expired: tell the user why they are logged out
+if (sessionStatus === 'expired') {
+  useToast().info("Your session has expired. Please log in again.")
+}
