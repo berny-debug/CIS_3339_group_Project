@@ -196,15 +196,18 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-300">
-            <tr @click="$router.push({ name: 'eventdetails', params: { id: event._id } })" 
-            v-for="event in clientEvents" :key="event._id" class="cursor-pointer" 
-              :class="{ 'hoverRow': hoverId === event._id }" @mouseenter="hoverId = event._id" @mouseleave="hoverId = null">
+            <tr @click="$router.push({ name: 'eventdetails', params: { id: event._id } })" v-for="event in clientEvents"
+              :key="event._id" class="cursor-pointer" :class="{ 'hoverRow': hoverId === event._id }"
+              @mouseenter="hoverId = event._id" @mouseleave="hoverId = null">
               <td class="p-2 text-left">{{ event.name }}</td>
               <td class="p-2 text-left">{{ formatDate(event.date) }}</td>
               <td class="p-2 text-right">
                 <span class="remove-btn-wrapper">
                   <span class="remove-btn text-gray-400 cursor-pointer"
-                    @click.stop="removeClientFromEvent(client._id, event._id)" v-if="hoverId === event._id">X</span>
+                    @click.stop="removeClientFromEvent(client._id, event._id)"
+                    v-if="hoverId === event._id && user.role === 'editor'">
+                    X
+                  </span>
                 </span>
               </td>
             </tr>
@@ -310,15 +313,16 @@ onMounted(async () => {
       getNonClientEvents(route.params.id)
     ])
 
+
     client.value = clientResponse
     clientEvents.value = clientEventsResponse
     eventsFiltered.value = nonClientEventsResponse
   } catch (error) {
-    toast.error('error loading data:', error)
+    toast.error(error?.message || 'Error loading client data.')
   }
 })
 
-// method called to format the event date
+// Method called to format the event date
 function formatDate(date) {
   const isoDate = new Date(date)
   const year = isoDate.getUTCFullYear()
@@ -327,48 +331,118 @@ function formatDate(date) {
   return `${month}/${day}/${year}`
 }
 
-//custom label for multiselect
+// Custom label for multiselect
 function nameWithDate({ name, date }) {
   return `${name} (${formatDate(date)})`
 }
 
-// reload the events the client is registered in and the events they are not
+// Reload the events the client is registered in and the events they are not
 async function refreshEventLists() {
   clientEvents.value = await getClientEvents(route.params.id)
   eventsFiltered.value = await getNonClientEvents(route.params.id)
 }
 
-// method called to remove client from event
+// Method called to remove client from event
 async function removeClientFromEvent(clientId, eventId) {
-  // remove client ID from the "attendees" array for that event
   try {
     const response = await deregisterAttendee(eventId, clientId)
-    toast.success(response)
-  } catch (error) {
-    toast.error(error)
-  }
-  // update events for which client is registered, and events for which client is not registered
-  try {
+    const message =
+      typeof response === 'string'
+        ? response
+        : response?.message || 'Event deregistration processed.'
+
+    if (message === 'Not registered') {
+      toast.info(message)
+    } else {
+      toast.success(message)
+    }
+
     await refreshEventLists()
   } catch (error) {
-    toast.error(error)
+    toast.error(error?.message || 'Unable to deregister from the event.')
   }
 }
 
-// method called to add client to an event
+// Method called to add client to multiple events
 async function addClientToEvent() {
   try {
+    if (!eventsSelected.value.length) {
+      toast.info('Select at least one event to register.')
+      return
+    }
+
     const clientId = client.value._id
-    const eventIds = eventsSelected.value.map((event) => event._id)
+    const selectedEvents = [...eventsSelected.value]
 
-    await Promise.all(eventIds.map((eventId) => registerAttendee(eventId, clientId)))
+    const results = await Promise.allSettled(
+      selectedEvents.map((event) =>
+        registerAttendee(event._id, clientId)
+      )
+    )
 
-    await refreshEventLists()
+    let successCount = 0
+    let alreadyRegisteredCount = 0
+    let failedCount = 0
+
+    results.forEach((result) => {
+      if (result.status === 'rejected') {
+        const status = result.reason?.response?.status
+        const responseMessage = result.reason?.response?.data
+
+        if (
+          status === 400 &&
+          typeof responseMessage === 'string' &&
+          responseMessage.toLowerCase().includes('already added')
+        ) {
+          alreadyRegisteredCount++
+        } else {
+          failedCount++
+        }
+
+        return
+      }
+
+      const response = result.value
+      const message =
+        typeof response === 'string'
+          ? response
+          : response?.message
+
+      if (message === 'Already registered') {
+        alreadyRegisteredCount++
+      } else {
+        successCount++
+      }
+    })
+
+    if (results.some((result) => result.status === 'fulfilled')) {
+      await refreshEventLists()
+    }
+
     eventsSelected.value = []
+
+    if (successCount > 0) {
+      toast.success(
+        `${successCount} event registration(s) successful.`
+      )
+    }
+
+    if (alreadyRegisteredCount > 0) {
+      toast.info(
+        `${alreadyRegisteredCount} event registration(s) already existed.`
+      )
+    }
+
+    if (failedCount > 0) {
+      toast.error(
+        `${failedCount} event registration(s) failed.`
+      )
+    }
   } catch (error) {
-    toast.error(error)
+    toast.error(error?.message || 'Unable to update event registrations.')
   }
 }
+
 
 // update client information
 async function submitUpdateClient() {
