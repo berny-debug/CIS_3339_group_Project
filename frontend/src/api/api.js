@@ -23,6 +23,10 @@ apiClient.interceptors.response.use(
 
     if (!error.response) {
       message = "Unable to reach the server";
+    } else if (status === 403) {
+      // the user is logged in but not allowed to do this (for example, a viewer on an editor-only action),
+      // so keep the session and only explain what happened
+      message = "You don't have permission to do that";
     } else {
       const responseData = error.response.data;
 
